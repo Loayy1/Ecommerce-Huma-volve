@@ -1,5 +1,10 @@
+import 'package:dio/dio.dart';
+import 'package:ecommerce_app_huma_volve/features/auth/sign_up/models/signup_req_model.dart';
+import 'package:ecommerce_app_huma_volve/features/auth/sign_up/models/signup_resp_model.dart';
+import 'package:ecommerce_app_huma_volve/features/auth/sign_up/services/signup_services.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/theme.dart';
@@ -17,13 +22,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
+  bool isLoad = false;
+  late final ApiClient apiClient;
+  late final SignupServices signupServices;
+
+  Future<void> signUp() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      try {
+        setState(() {
+          isLoad = true;
+        });
+        final resp = await signupServices.signUp(
+          SignupReqModel(
+            name: nameController.text.trim(),
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          ),
+        );
+        setState(() {
+          isLoad = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Sign Up Success"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } on DioException catch (ex) {
+        setState(() {
+          isLoad = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ex.toString()), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
     nameController = TextEditingController();
     emailController = TextEditingController();
     passwordController = TextEditingController();
-
+    apiClient = ApiClient();
+    signupServices = SignupServices(apiClient);
     super.initState();
   }
 
@@ -110,16 +156,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 40),
                 PrimaryButton(
                   text: 'Sign Up',
-                  onPressed: () async {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      );
-                    }
-                  },
+                  isLoading: isLoad,
+                  onPressed: signUp,
                 ),
                 const SizedBox(height: 24),
                 Row(
