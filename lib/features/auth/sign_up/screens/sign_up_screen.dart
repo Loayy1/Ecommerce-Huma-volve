@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:ecommerce_app_huma_volve/features/auth/sign_up/models/signup_req_model.dart';
-import 'package:ecommerce_app_huma_volve/features/auth/sign_up/models/signup_resp_model.dart';
 import 'package:ecommerce_app_huma_volve/features/auth/sign_up/services/signup_services.dart';
 import 'package:flutter/material.dart';
 
