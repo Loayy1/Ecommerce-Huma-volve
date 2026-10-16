@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../core/dummy_data.dart';
 import '../../../core/theme.dart';
 import '../widgets/color_selector.dart';
+import '../widgets/share_product_bottom.dart';
 import '../widgets/size_selector.dart';
 import '../../../core/widgets/primary_button.dart';
+import 'package:go_router/go_router.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
@@ -44,9 +46,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
                 child: const Icon(Icons.arrow_back_ios_new, size: 16),
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/');
+                }
+              },
             ),
             actions: [
+              ShareProductBottom(productid: widget.product.id),
               IconButton(
                 icon: Container(
                   padding: const EdgeInsets.all(8),
