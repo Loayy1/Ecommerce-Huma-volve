@@ -17,11 +17,28 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedCategoryIndex = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
-    context.read<HomeCubit>().loadHomeData();
     super.initState();
+    _scrollController.addListener(_onScroll);
+    context.read<HomeCubit>().loadHomeData();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
+      context.read<HomeCubit>().loadMoreProducts();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -29,8 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await context.read<HomeCubit>().refreshProducts();
+          },
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -145,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   label: categories[index].name,
                                   isSelected: _selectedCategoryIndex == index,
                                   onTap: () {
+                                    if (_selectedCategoryIndex == index) return;
                                     setState(() {
                                       _selectedCategoryIndex = index;
                                     });
@@ -153,6 +177,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                         .loadProductsByCategory(
                                           categories[index].id,
                                         );
+                                    if (_scrollController.hasClients) {
+                                      _scrollController.animateTo(
+                                        0,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeOut,
+                                      );
+                                    }
                                   },
                                 );
                               },
@@ -199,9 +231,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final product = products[index];
                         String imageUrl = 'https://picsum.photos/300/300';
-                        if (product.images != null &&
-                            product.images!.isNotEmpty) {
-                          imageUrl = product.images!.first
+                        if (product.images.isNotEmpty) {
+                          imageUrl = product.images.first
                               .replaceAll('[', '')
                               .replaceAll(']', '')
                               .replaceAll('"', '')
@@ -212,10 +243,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
                         return ProductCard(
                           product: Product(
-                            id: product.id.toString() ?? '',
-                            name: product.title ?? '',
-                            description: product.description ?? '',
-                            price: (product.price ?? 0).toDouble(),
+                            id: product.id.toString(),
+                            name: product.title,
+                            description: product.description,
+                            price: product.price.toDouble(),
                             imageUrl: imageUrl,
                             colors: const [
                               Colors.black,
@@ -230,16 +261,72 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 } else if (state is ProductsFailed) {
                   return SliverFillRemaining(
-                    child: Center(child: Text(state.errorMsg)),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(state.errorMsg),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              context.read<HomeCubit>().loadProducts(
+                                isInitial: true,
+                              );
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try Again'),
+                          ),
+                        ],
+                      ),
+                    ),
                   );
                 }
                 return const SliverToBoxAdapter(child: SizedBox.shrink());
               },
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            BlocBuilder<HomeCubit, HomeStates>(
+              builder: (context, state) {
+                if (state is ProductsPaginationLoading) {
+                  return const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                } else if (state is ProductsPaginationFailed) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              state.errorMsg,
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                context.read<HomeCubit>().loadMoreProducts();
+                              },
+                              icon: const Icon(Icons.refresh, size: 18),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return const SliverToBoxAdapter(child: SizedBox(height: 24));
+              },
+            ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

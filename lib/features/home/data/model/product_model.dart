@@ -1,4 +1,3 @@
-import 'package:ecommerce_app_huma_volve/features/home/domain/entites/home_category_entity.dart';
 import 'package:ecommerce_app_huma_volve/features/home/domain/entites/home_product_entity.dart';
 
 import 'category_model.dart';

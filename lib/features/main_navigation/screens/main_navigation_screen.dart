@@ -45,14 +45,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   @override
+  void dispose() {
+    homeCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<Widget> _screens = [
-      BlocProvider(create: (context) => homeCubit, child: const HomeScreen()),
+    final List<Widget> screens = [
+      BlocProvider.value(value: homeCubit, child: const HomeScreen()),
       const CartScreen(),
       const ProfileScreen(),
     ];
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
